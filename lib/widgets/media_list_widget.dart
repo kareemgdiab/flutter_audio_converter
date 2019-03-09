@@ -137,7 +137,8 @@ class MediaListWidgetState extends State<MediaListWidget> {
           .requestPermissions([PermissionGroup.storage]);
     }
 
-    permission = permissions[PermissionGroup.storage];
+    if(permissions != null)
+      permission = permissions[PermissionGroup.storage];
 
     if (permission == PermissionStatus.granted) {
       try {
