@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.flutter_audio_converter">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
@@ -10,6 +11,7 @@
     <application
         android:name="io.flutter.app.FlutterApplication"
         android:label="flutter_audio_converter"
+        tools:replace="android:label"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

@@ -21,6 +21,8 @@ dependencies:
     sdk: flutter
   path_provider: ^0.5.0+1
   permission_handler: '^2.2.0'
+  audioplayers: ^0.10.0
+  flutter_ffmpeg:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

@@ -1,12 +1,18 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_audio_converter/data/converter.dart';
 import 'package:flutter_audio_converter/data/indexer.dart';
+import 'package:flutter_audio_converter/providers/audio_player.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class MediaListWidgetState extends State<MediaListWidget> {
   final List<FileSystemEntity> _files = new List();
   final TextStyle _biggerFont = const TextStyle(fontSize: 18.0);
+  final Player _player = new Player();
+  bool _isPlaying = false;
+  String _longTappedRow;
+
   String error;
 
   @override
@@ -52,8 +58,8 @@ class MediaListWidgetState extends State<MediaListWidget> {
       return CircularProgressIndicator();
     } else {
       return ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: _files.length,
+        padding: EdgeInsets.zero,
+        itemCount: _files.length * 2,
         itemBuilder: (context, i) {
           if (i.isOdd) return Divider();
 
@@ -71,7 +77,8 @@ class MediaListWidgetState extends State<MediaListWidget> {
       builder: (BuildContext context, AsyncSnapshot snap) {
         if (snap.hasData && snap.data != null) {
           return ListView.builder(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.zero,
+            // padding: const EdgeInsets.all(16.0),
             itemCount: _files.length,
             itemBuilder: (context, i) {
               if (i.isOdd) return Divider();
@@ -89,14 +96,75 @@ class MediaListWidgetState extends State<MediaListWidget> {
   }
 
   Widget _buildRow(FileSystemEntity file) {
-    return ListTile(
+    bool isCurrentlyPlaying =
+        _player.currentlyPlaying == file.path && _isPlaying;
+    bool isLongTapped = file.path == _longTappedRow;
+
+    return new ListTile(
       title: Text(
         _getPostfix(file.path),
         style: _biggerFont,
+        overflow: isLongTapped ? TextOverflow.clip : TextOverflow.ellipsis,
       ),
-      trailing: new Icon(Icons.play_arrow),
-      onTap: () {
-        setState(() {});
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          new IconButton(
+            icon: new Icon(isCurrentlyPlaying ? Icons.pause : Icons.play_arrow),
+            onPressed: () async {
+              if (isCurrentlyPlaying) {
+                bool result = await _player.pause();
+                if (result) {
+                  setState(() {
+                    _isPlaying = false;
+                  });
+                }
+              } else {
+                bool result = await _player.play(file.path);
+                if (result) {
+                  setState(() {
+                    _isPlaying = true;
+                  });
+                }
+              }
+            },
+          ),
+          new PopupMenuButton(
+            icon: Icon(Icons.swap_horiz),
+            itemBuilder: (BuildContext context) {
+              return Converter.supportedFormats.map((Format format) {
+                return new PopupMenuItem(
+                  child: new ListTile(
+                    leading: format.icon,
+                    title: Text(format.name),
+                    onTap: () {
+                      Converter converter = new Converter();
+                      converter.onProgressChanged((double progress) {
+                        print("progress: $progress");
+                      });
+
+                      converter.enableOverwrite();
+
+                      converter
+                        .aac(file.path)
+                        .to()
+                        .mp3("/storage/emulated/0/Music/file.mp3");
+                      print("convert button pressed");
+                    },
+                  ),
+                );
+              }).toList();
+            },
+          )
+        ],
+      ),
+      onLongPress: () {
+        setState(() {
+          _longTappedRow = file.path;
+        });
+      },
+      onTap: () async {
+        
       },
     );
   }
@@ -105,18 +173,18 @@ class MediaListWidgetState extends State<MediaListWidget> {
     return path.split("/").last;
   }
 
-  void _pushSaved() {
-    Navigator.of(context).push(new MaterialPageRoute<void>(
-      builder: (BuildContext context) {
-        return new Scaffold(
-          appBar: new AppBar(
-            title: const Text('Saved Suggestions'),
-          ),
-          body: new Container(),
-        );
-      },
-    ));
-  }
+  // void _pushSaved() {
+  //   Navigator.of(context).push(new MaterialPageRoute<void>(
+  //     builder: (BuildContext context) {
+  //       return new Scaffold(
+  //         appBar: new AppBar(
+  //           title: const Text('Saved Suggestions'),
+  //         ),
+  //         body: new Container(),
+  //       );
+  //     },
+  //   ));
+  // }
 
   Future<List<FileSystemEntity>> _getMediaFilesFuture() async {
     Indexer indexer = new Indexer();
@@ -137,12 +205,11 @@ class MediaListWidgetState extends State<MediaListWidget> {
           .requestPermissions([PermissionGroup.storage]);
     }
 
-    if(permissions != null)
-      permission = permissions[PermissionGroup.storage];
+    if (permissions != null) permission = permissions[PermissionGroup.storage];
 
     if (permission == PermissionStatus.granted) {
       try {
-        files = await indexer.findFiles(["m4a"]);
+        files = await indexer.findFiles(["aac"]);
       } on Exception {
         setState(() {
           error = "Please check storage permissions";
