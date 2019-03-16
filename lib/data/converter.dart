@@ -10,7 +10,7 @@ class Format {
 
 class Converter {
   static List<Format> supportedFormats = [
-    new Format(name: "AAC", icon: const Icon(Icons.audiotrack))
+    new Format(name: "MP3", icon: const Icon(Icons.audiotrack))
   ];
 
   final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
